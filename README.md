@@ -1,9 +1,9 @@
 # Project 4: Inventory Management System
 
 ## Team Members
-- Member 1 (Name)
-- Member 2 (Name)
-- Member 3 (Name)
+- Member 1 (Olamide Adeboye)
+- Member 2 (Alex Omeje)
+- Member 3 (Kunle Fatade)
 
 ## Description
 A command-line inventory system to track products, manage stock, process sales, and generate reports.
