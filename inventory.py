@@ -138,7 +138,7 @@ class Inventory:
             for item in raw:
                 try:
                     product = Product.from_dict(item)
-                    self.products[products.product_id] = product
+                    self.products[product.product_id] = product
                 except (KeyError, InvalidProductError) as e:
                     logger.warning(
                         f"Skipped corrupted product entry: {e} " f"Data: {item}"
