@@ -19,51 +19,132 @@ class Inventory:
         self.products = {}
         self.low_stock_threshold = low_stock_threshold
         self.data_file = data_file
-        # TODO: Call self.load_data()
+        # Call self.load_data()
+        self.load_data()
 
     def add_product(self, product):
         """Raises DuplicateProductError if ID exists."""
-        # TODO: Check for duplicates, add, log.
-        pass
+        # Check for duplicates, add, log.
+        if product.product_id in self.products:
+            raise DuplicateProductError(
+                f"product with ID '{product.product_id}' already exists."
+            )
+        self.products[product.product_id] = product
+        logger.info(f"Added product '{product.name}' (ID: {product.product_id}).")
+        self.save_data()
 
     def remove_product(self, product_id):
         """Raises InvalidProductError if not found."""
-        # TODO: Remove from dict, log.
-        pass
+        # Remove from dict, log.
+        if product_id not in self.products:
+            raise InvalidProductError(f"Product with ID '{product_id}' not found.")
+        removed_product = self.products.pop(product_id)
+        logger.info(
+            f"Removed product '{removed_product.name}' (ID: {removed_product.product_id})."
+        )
+        self.save_data()
 
     def find_product(self, product_id):
         """Raises InvalidProductError if not found."""
-        # TODO: Return product or raise.
-        pass
+        # Return product or raise.
+        if product_id not in self.products:
+            raise InvalidProductError(f"Product with ID '{product_id}' not found.")
+        return self.products[product_id]
 
     def sell_product(self, product_id, qty):
         """Process a sale. Warn if stock drops below threshold."""
-        # TODO: Find product, call sell(), check low stock.
-        pass
+        # Find product, call sell(), check low stock.
+        product = self.find_product(product_id)
+        product.sell(qty)
+        if (
+            not isinstance(product, DigitalProduct)
+            and product.quantity < self.low_stock_threshold
+        ):
+            logger.warning(
+                f"Stock for '{product.name}' (ID: {product.product_id}) is low: {product.quantity} units remaining."
+            )
+            self.save_data()
 
     def restock_product(self, product_id, qty):
-        # TODO: Find and restock.
-        pass
+        # Find and restock.
+        product = self.find_product(product_id)
+        product.restock(qty)
+        logger.info(
+            f"Restocked {qty} units of '{product.name}' (ID): {product.product_id}). New stock: {product.quantity}."
+        )
+        self.save_data()
 
     def search(self, query):
         """Search by partial name or exact category."""
-        # TODO: Use a list comprehension.
-        pass
+        # Use a list comprehension.
+        query = query.lower()
+        return [
+            product
+            for product in self.products.values()
+            if query in product.name.lower() or query in product.category.lower()
+        ]
 
     def low_stock_report(self):
         """Return products below threshold (exclude digital)."""
-        # TODO: Use a list comprehension to filter.
-        pass
+        # Use a list comprehension to filter.
+        return [
+            product
+            for product in self.products.values()
+            if not isinstance(product, DigitalProduct)
+            and product.quantity < self.low_stock_threshold
+        ]
 
     def stock_value_report(self):
         """Return total value (price * qty) by category."""
-        # TODO: Use a loop or dict comprehension.
-        pass
+        # Use a loop or dict comprehension.
+        report = {}
+
+        for product in self.products.values():
+            if isinstance(product, DigitalProduct):
+                value = 0
+            else:
+                value = product.price * product.quantity
+            if product.category in report:
+                report[product.category] += value
+            else:
+                report[product.category] = value
+
+        return report
 
     def save_data(self):
-        # TODO: Write product dicts to JSON.
-        pass
+        # Write product dicts to JSON.
+        try:
+            os.makedirs(os.path.dirname(self.data_file), exist_ok=True)
+            with open(self.data_file, "w") as f:
+                json.dump(
+                    [product.to_dict() for product in self.products.values()],
+                    f,
+                    indent=4,
+                )
+                logger.info(f"Inventory data saved to '{self.data_file}'.")
+        except OSError as e:
+            logger.error(f"Error saving inventory data to '{self.data_file}': {e}")
 
     def load_data(self):
-        # TODO: Read JSON, use Product.from_dict() factory.
-        pass
+        # Read JSON, use Product.from_dict() factory.
+        if not os.path.exists(self.data_file):
+            logger.info(
+                f"No existing inventory data found at '{self.data_file}'. starting fresh."
+            )
+            return
+        try:
+            with open(self.data_file, "r") as f:
+                raw = json.load(f)
+            for item in raw:
+                try:
+                    product = Product.from_dict(item)
+                    self.products[product.product_id] = product
+                except (KeyError, InvalidProductError) as e:
+                    logger.warning(
+                        f"Skipped corrupted product entry: {e} " f"Data: {item}"
+                    )
+            logger.info(f"Loaded {len(self.products)} products from {self.data_file} ")
+        except json.JSONDecodeError as e:
+            logger.error(f"Error loading inventory data from '{self.data_file}': {e}")
+        except OSError as e:
+            logger.error(f"Error accessing inventory data file '{self.data_file}': {e}")
