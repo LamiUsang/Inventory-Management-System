@@ -46,8 +46,9 @@ def display_menu():
     print("6.  Remove a product")
     print("7.  Low stock report")
     print("8.  Stock value report")
-    print("9.  Transaction history")
-    print("10. Save and exit")
+    print("9.  Stock summary by category")
+    print("10. Transaction history")
+    print("11. Save and exit")
     print("=" * 50)
 
 
@@ -57,7 +58,7 @@ def main():
 
     while True:
         display_menu()
-        choice = input("\nEnter your choice (1-10): ").strip()
+        choice = input("\nEnter your choice (1-11): ").strip()
 
         try:
             if choice == "1":
@@ -165,7 +166,7 @@ def main():
                 print("\nProduct removed successfully.")
 
             elif choice == "7":
-                low_stock_products = inventory.low_stock_report()
+                low_stock_products = list(inventory.low_stock_report())
 
                 if not low_stock_products:
                     print("\nNo low-stock products.")
@@ -184,17 +185,27 @@ def main():
                     for category, value in report.items():
                         print(f"{category}: {value:.2f}")
             elif choice == "9":
+                summary = inventory.stock_summary()
+
+                if not summary:
+                    print("\nNo stock summary data available.")
+                else:
+                    print("\nStock Summary by Category:")
+                    for category, qty in summary.items():
+                        print(f"{category}: {qty}")
+
+            elif choice == "10":
                 print("\nTransaction History:")
                 log.summary()
 
-            elif choice == "10":
+            elif choice == "11":
                 inventory.save_data()
                 log.save()
                 print("\nData saved. Goodbye!")
                 break
 
             else:
-                print("\nInvalid choice. Please enter a number between 1 and 10.")
+                print("\nInvalid choice. Please enter a number between 1 and 11.")
 
         except ValueError:
             print("\nInvalid input. Please enter the correct data type.")

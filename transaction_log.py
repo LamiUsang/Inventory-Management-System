@@ -47,21 +47,23 @@ class TransactionLog:
             )
 
     def save(self):
-        # Write entries to JSON.
         try:
+            os.makedirs(os.path.dirname(self.log_file), exist_ok=True)
             with open(self.log_file, "w") as file:
                 json.dump(self.entries, file, indent=4)
-        except Exception as e:
-            print(f"Error saving transaction log: {e}")
+        except OSError as e:
+            logger.error(f"Error saving transaction log to '{self.log_file}': {e}")
 
     def load(self):
-        # TODO: Read from JSON, handle missing file.
+        self.entries = []
+        if not os.path.exists(self.log_file):
+            return
         try:
-            with open(self.log_file, "r") as file:
+            with open(self.log_file, "r", encoding="utf-8") as file:
                 self.entries = json.load(file)
-
-        except FileNotFoundError:
-            print(f"Log file not found: {self.log_file}")
-        except Exception as e:
-            print(f"Error loading transactions: {e}")
+        except json.JSONDecodeError as e:
+            logger.error(f"Error loading transactions from '{self.log_file}': {e}")
+            self.entries = []
+        except OSError as e:
+            logger.error(f"Error loading transactions from '{self.log_file}': {e}")
             self.entries = []

@@ -63,14 +63,14 @@ class Inventory:
             logger.warning(
                 f"Stock for '{product.name}' (ID: {product.product_id}) is low: {product.quantity} units remaining."
             )
-            self.save_data()
+        self.save_data()
 
     def restock_product(self, product_id, qty):
         # Find and restock.
         product = self.find_product(product_id)
         product.restock(qty)
         logger.info(
-            f"Restocked {qty} units of '{product.name}' (ID): {product.product_id}). New stock: {product.quantity}."
+            f"Restocked {qty} units of '{product.name}' (ID: {product.product_id}). New stock: {product.quantity}."
         )
         self.save_data()
 
@@ -81,35 +81,41 @@ class Inventory:
         return [
             product
             for product in self.products.values()
-            if query in product.name.lower() or query in product.category.lower()
+            if query in product.name.lower() or query == product.category.lower()
         ]
 
     def low_stock_report(self):
-        """Return products below threshold (exclude digital)."""
-        # Use a list comprehension to filter.
-        return [
-            product
-            for product in self.products.values()
-            if not isinstance(product, DigitalProduct)
-            and product.quantity < self.low_stock_threshold
-        ]
+        """Yield products below threshold (exclude digital). Lazy over large inventories."""
+        for product in self.products.values():
+            if (
+                not isinstance(product, DigitalProduct)
+                and product.quantity < self.low_stock_threshold
+            ):
+                yield product
+
+    def stock_summary(self):
+        """Return total quantity on hand by category (excludes digital)."""
+        categories = {p.category for p in self.products.values()}
+        return {
+            category: sum(
+                p.quantity
+                for p in self.products.values()
+                if p.category == category and not isinstance(p, DigitalProduct)
+            )
+            for category in categories
+        }
 
     def stock_value_report(self):
         """Return total value (price * qty) by category."""
-        # Use a loop or dict comprehension.
-        report = {}
-
-        for product in self.products.values():
-            if isinstance(product, DigitalProduct):
-                value = 0
-            else:
-                value = product.price * product.quantity
-            if product.category in report:
-                report[product.category] += value
-            else:
-                report[product.category] = value
-
-        return report
+        categories = {p.category for p in self.products.values()}
+        return {
+            category: sum(
+                p.price * p.quantity
+                for p in self.products.values()
+                if p.category == category and not isinstance(p, DigitalProduct)
+            )
+            for category in categories
+        }
 
     def save_data(self):
         # Write product dicts to JSON.
@@ -127,24 +133,24 @@ class Inventory:
 
     def load_data(self):
         # Read JSON, use Product.from_dict() factory.
+        self.products = {}
         if not os.path.exists(self.data_file):
-            logger.info(
-                f"No existing inventory data found at '{self.data_file}'. starting fresh."
-            )
             return
         try:
-            with open(self.data_file, "r") as f:
+            with open(self.data_file, "r", encoding="utf-8") as f:
                 raw = json.load(f)
             for item in raw:
                 try:
                     product = Product.from_dict(item)
                     self.products[product.product_id] = product
-                except (KeyError, InvalidProductError) as e:
+                except (KeyError, TypeError, InvalidProductError) as e:
                     logger.warning(
                         f"Skipped corrupted product entry: {e} " f"Data: {item}"
                     )
             logger.info(f"Loaded {len(self.products)} products from {self.data_file} ")
         except json.JSONDecodeError as e:
             logger.error(f"Error loading inventory data from '{self.data_file}': {e}")
+            self.products = {}
         except OSError as e:
             logger.error(f"Error accessing inventory data file '{self.data_file}': {e}")
+            self.products = {}

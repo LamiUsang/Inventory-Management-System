@@ -70,10 +70,10 @@ class Product:
     def __str__(self):
         # Formatted string with all product details.
         return (
-            f"Product:: {self.name} | "
+            f"Product: {self.name} | "
             f"ID: {self.product_id} | "
             f"Price: £{self.price:.2f} | "
-            f"Quantity: {self.quantity} |"
+            f"Quantity: {self.quantity} | "
             f"Category: {self.category} | "
         )
 
@@ -92,7 +92,7 @@ class Product:
     def from_dict(cls, data):
         """Factory method: create correct subclass from a dict."""
         # Check data["type"] and return correct subclass.
-        product_type = data.get("type: standard")
+        product_type = data.get("type", "standard")
         if product_type == "perishable":
             return PerishableProduct(
                 product_id=data["product_id"],
@@ -174,7 +174,8 @@ class DigitalProduct(Product):
 
     def sell(self, qty=1):
         """No stock decrement. Log and return download link."""
-        # Log sale, return self.download_link.
+        if not isinstance(qty, int) or qty <= 0:
+            raise InvalidProductError("Quantity to sell must be a positive integer.")
         logger.info(
             f"sold {qty} units of digital product '{self.name}' (ID: {self.product_id}). Download link: {self.download_link}."
         )
