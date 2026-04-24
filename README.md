@@ -50,7 +50,7 @@ python -m unittest discover tests -v
 ├── logs/
 │   └── inventory.log     # Application log file
 └── tests/                # Unit tests
-```
+
 
 ## Tech Stack
 - **Language:** Python 3
